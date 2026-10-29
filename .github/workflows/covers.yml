@@ -1,0 +1,31 @@
+name: Keep template covers available
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: cover-sync
+  cancel-in-progress: false
+jobs:
+  covers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/sync-covers.mjs
+      - run: |
+          git config user.name 'Cover sync'
+          git config user.email 'actions@users.noreply.github.com'
+          git add covers covers.json
+          git diff --cached --quiet || (git commit -m 'Cache covers for published templates' && git push)
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - uses: actions/deploy-pages@v4
